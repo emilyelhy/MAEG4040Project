@@ -4,7 +4,6 @@
 ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1) ALWAYS PULL CODE before working on the code saved on your computer.
 ##### &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2) Make sure the version of your local code is same as the one on github both before and after you edit it
 &nbsp;
-
 ---
 ### Simple Guide on Using GitHub
 ##### If you have github installed in PC
