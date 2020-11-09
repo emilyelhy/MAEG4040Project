@@ -263,7 +263,7 @@ void tracking_algoritm()
   int noOfValidPoint = 0;
   if(isItIn("L")){
     motorMOVE(RLT, 80, 90);
-    return
+    return;
   }
   if(isItIn("R")){
     motorMOVE(LRT, 80, 90);
