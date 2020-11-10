@@ -185,17 +185,43 @@ void setup() {
 
 // the loop function runs over and over again forever
 
-int getBLK(uint16_t camARR[]) {
-  for (int i = 0; i < ARR_SIZE - 4; i++) {
+int getBLKL(uint16_t camARR[]) {
+  for (int i = 0; i < 42 - 4; i++) {
     if (camARR[i] <= BLK) {
       int count = 0;
-      for (int j = i; j < i + 4; j++) {
+      for (int j = i + 1; j < i + 5; j++) {
         if (camARR[j] <= BLK) count++;
       }
       if (count > 2) return i;
     }
   }
-  return 127;
+  return -1;
+}
+
+int getBLKM(uint16_t camARR[]) {
+  for (int i = 43; i < 85 - 4; i++) {
+    if (camARR[i] <= BLK) {
+      int count = 0;
+      for (int j = i + 1; j < i + 5; j++) {
+        if (camARR[j] <= BLK) count++;
+      }
+      if (count > 2) return i;
+    }
+  }
+  return -1;
+}
+
+int getBLKR(uint16_t camARR[]) {
+  for (int i = 86; i < ARR_SIZE - 4; i++) {
+    if (camARR[i] <= BLK) {
+      int count = 0;
+      for (int j = i + 1; j < i + 5; j++) {
+        if (camARR[j] <= BLK) count++;
+      }
+      if (count > 2) return i;
+    }
+  }
+  return -1;
 }
 
 void loop() {
@@ -243,15 +269,18 @@ void Chk_speedX(int *lL, int *rR)
 void tracking_algoritm()
 {
 // USER DEFINE
-  int pos = getBLK(camARR);
-  if (pos >= MID && pos < RT)
-    motorMOVE(FW, 50, 50);
-  else if (pos < MID) {
-      motorMOVE(CCW, 40, 40);
-  }
-  else if (pos > RT) {
-      motorMOVE(CW, 40, 40);
-  }
+  int posL = getBLKL(camARR);
+  int posM = getBLKM(camARR);
+  int posR = getBLKR(camARR);
+  if (posL != -1 && posM != -1 && posR != -1)
+    motorMOVE(BW, 33, 30);
+  else if (posL != -1) 
+      motorMOVE(CW, 40, 37);
+  else if (posM != -1)
+    motorMOVE(FW, 40, 37);
+  else if (posR != -1) 
+      motorMOVE(CCW, 40, 37);
+  
 }
 
 
