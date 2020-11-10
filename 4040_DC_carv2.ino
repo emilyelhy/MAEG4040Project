@@ -62,15 +62,10 @@ int BENCR = PA9;
 #define ARR_SIZE 128
 #define DT 10
 
-// Const for line pixel location
-#define Center_L 54
-#define Center_R 74
-#define Left_L 0
-#define Left_R 53
-#define Right_L 75
-#define Right_R 127
-#define Black_OFFSET 157
-#define Width_OFFSET 20
+#define LT 0
+#define MID 42
+#define RT 85
+#define BLK 200
 
 int avrLVL = 0;
 
@@ -190,8 +185,18 @@ void setup() {
 
 // the loop function runs over and over again forever
 
-
-
+int getBLK(uint16_t camARR[]) {
+  for (int i = 0; i < ARR_SIZE - 4; i++) {
+    if (camARR[i] <= BLK) {
+      int count = 0;
+      for (int j = i; j < i + 4; j++) {
+        if (camARR[j] <= BLK) count++;
+      }
+      if (count > 2) return i;
+    }
+  }
+  return 127;
+}
 
 void loop() {
 
@@ -199,11 +204,11 @@ void loop() {
   {
     mainPage(1); mainPage(2); mainPage(3); mainPage(4); mainPage(5); mainPage(6);
   }
-  motorMOVE(FW, 80, 90);
+  //motorMOVE(FW, 80, 80);
   //if ((tt) % 1000 < 500)
   //{    motorMOVE(FW, 100, 94);}
- // else
- // {    motorMOVE(STP, 100, 94);}
+  //else
+  //{    motorMOVE(STP, 100, 94);}
 
       Chk_speedX(&speedL, &speedR);
       // tracking algoritm
@@ -234,44 +239,18 @@ void Chk_speedX(int *lL, int *rR)
 
 }
 
-bool isItIn(char area){
-  int noOfValidPoint = 0;
-  switch(area)
-  {
-    case "L":
-      for(int i = Left_L; i <= Left_R; i++)
-        if((*(camptr+i)) >= Black_OFFSET) noOfValidPoint = noOfValidPoint + 1;
-      if(noOfValidPoint >= Width_OFFSET) return true;
-      else return false;
-    case "R":
-      for(int i = Right_L; i <= Right_R; i++)
-        if((*(camptr+i)) >= Black_OFFSET) noOfValidPoint = noOfValidPoint + 1;
-      if(noOfValidPoint >= Width_OFFSET) return true;
-      else return false;
-    case "C":
-      for(int i = Center_L; i <= Center_R; i++)
-        if((*camptr+i)) >= Black_OFFSET) noOfValidPoint = noOfValidPoint + 1;
-      if(noOfValidPoint >= Width_OFFSET) return true;
-      else return false;
-  }
-}
 
 void tracking_algoritm()
 {
 // USER DEFINE
-  getCameraZ();
-  int noOfValidPoint = 0;
-  if(isItIn("L")){
-    motorMOVE(RLT, 80, 90);
-    return;
+  int pos = getBLK(camARR);
+  if (pos >= MID && pos < RT)
+    motorMOVE(FW, 50, 50);
+  else if (pos < MID) {
+      motorMOVE(CCW, 40, 40);
   }
-  if(isItIn("R")){
-    motorMOVE(LRT, 80, 90);
-    return;
-  }
-  if(isItIn("C")){
-    motorMOVE(FW, 80, 90);
-    return;
+  else if (pos > RT) {
+      motorMOVE(CW, 40, 40);
   }
 }
 
