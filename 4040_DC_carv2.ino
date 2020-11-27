@@ -62,10 +62,10 @@ int BENCR = PA9;
 #define ARR_SIZE 128
 #define DT 10
 
-#define LT 0
-#define MID 42
-#define RT 85
-#define BLK 200
+#define MID 69
+#define BLK 170 //!!!
+#define NSL 47
+#define NSR 50
 
 int avrLVL = 0;
 
@@ -174,7 +174,7 @@ void setup() {
   pinMode(IN4, OUTPUT);
   pinMode(PWMR, PWM);
   tft.setFont(Terminal12x16);
-  
+
   mainPage(0);
 
   pinMode(Cam_CLK, OUTPUT);
@@ -185,44 +185,6 @@ void setup() {
 
 // the loop function runs over and over again forever
 
-int getBLKL(uint16_t camARR[]) {
-  for (int i = 0; i < 42 - 4; i++) {
-    if (camARR[i] <= BLK) {
-      int count = 0;
-      for (int j = i + 1; j < i + 5; j++) {
-        if (camARR[j] <= BLK) count++;
-      }
-      if (count > 2) return i;
-    }
-  }
-  return -1;
-}
-
-int getBLKM(uint16_t camARR[]) {
-  for (int i = 43; i < 85 - 4; i++) {
-    if (camARR[i] <= BLK) {
-      int count = 0;
-      for (int j = i + 1; j < i + 5; j++) {
-        if (camARR[j] <= BLK) count++;
-      }
-      if (count > 2) return i;
-    }
-  }
-  return -1;
-}
-
-int getBLKR(uint16_t camARR[]) {
-  for (int i = 86; i < ARR_SIZE - 4; i++) {
-    if (camARR[i] <= BLK) {
-      int count = 0;
-      for (int j = i + 1; j < i + 5; j++) {
-        if (camARR[j] <= BLK) count++;
-      }
-      if (count > 2) return i;
-    }
-  }
-  return -1;
-}
 
 void loop() {
 
@@ -236,19 +198,19 @@ void loop() {
   //else
   //{    motorMOVE(STP, 100, 94);}
 
-      Chk_speedX(&speedL, &speedR);
-      // tracking algoritm
-      tracking_algoritm();
+  Chk_speedX(&speedL, &speedR);
+  // tracking algoritm
+  tracking_algoritm();
 
-      Cam_plot(0); // clear
-      getCameraZ();  // get data
-      Cam_plot(1);  // plot
-      if (digitalRead(PC13))
-        digitalWrite(PC13, LOW);
-      else
-        digitalWrite(PC13, HIGH);  
-      XXtime = millis() - XXtime;
-      
+  Cam_plot(0); // clear
+  getCameraZ();  // get data
+  Cam_plot(1);  // plot
+  if (digitalRead(PC13))
+    digitalWrite(PC13, LOW);
+  else
+    digitalWrite(PC13, HIGH);
+  XXtime = millis() - XXtime;
+
 }
 
 
@@ -265,22 +227,54 @@ void Chk_speedX(int *lL, int *rR)
 
 }
 
+int getBLK(uint16_t camARR[]) {
+  int left = -1, right = -1;
+  for (int i = 0; i < ARR_SIZE; i++) {
+    if (camARR[i] <= BLK) {
+      int count = 0;
+      for (int j = i + 1; j < i + 3; j++) {
+        if (camARR[j] <= BLK) count++;
+      }
+      if (count == 2) {
+        left = i;
+        break;
+      }
+    }
+  }
+
+  for (int i = ARR_SIZE - 1; i >= 0; i--) {
+    if (camARR[i] <= BLK) {
+      int count = 0;
+      for (int j = i - 1; j > i - 3; j--) {
+        if (camARR[j] <= BLK) count++;
+      }
+      if (count == 2) {
+        right = i;
+        break;
+      }
+    }
+  }
+  if (right - left > 115) return -10;
+  else if (right - MID <= 30 && MID - left <= 30 && right >= MID && left <= MID) return (right + left) / 2;
+  else if (abs(right - MID) > abs(left - MID)) return right;
+  else return left;
+}
 
 void tracking_algoritm()
 {
-// USER DEFINE
-  int posL = getBLKL(camARR);
-  int posM = getBLKM(camARR);
-  int posR = getBLKR(camARR);
-  if (posL != -1 && posM != -1 && posR != -1)
-    motorMOVE(BW, 33, 30);
-  else if (posL != -1) 
-      motorMOVE(CW, 40, 37);
-  else if (posM != -1)
-    motorMOVE(FW, 40, 37);
-  else if (posR != -1) 
-      motorMOVE(CCW, 40, 37);
-  
+  // USER DEFINE
+  int pos = getBLK(camARR);
+  if (pos == -10) {
+    delay(200);
+    motorMOVE(STP, 0, 0);
+    delay(2000);
+  }
+  else if (pos == -1)
+    motorMOVE(BW, 32, 32);
+  else if (pos >= 0 && pos < MID)
+    motorMOVE(FW, map(pos, 0, MID - 1, 0, NSL), NSR);
+  else 
+    motorMOVE(FW, NSL, map(pos, MID, ARR_SIZE - 1, NSR, 0));
 }
 
 
@@ -353,7 +347,6 @@ void motorMOVE(MOT_dir actX, uint8_t spdL , uint8_t spdR )
       digitalWrite(IN4, 1);
       break;
   }
-  delay(200);
 }
 
 
@@ -361,7 +354,7 @@ void motorMOVE(MOT_dir actX, uint8_t spdL , uint8_t spdR )
 void mainPage(uint8_t sel)
 {
   float tBat = 0.0;
-  int tmp=0;
+  int tmp = 0;
   switch (sel)
   {
     case 0: tft.drawText(12 * 3, 16 * sel, "MAE 4040" , COLOR_WHITE);
@@ -373,11 +366,11 @@ void mainPage(uint8_t sel)
       tft.drawLine(0, 16 * 8, tft.maxX(), 16 * 8, COLOR_BLUE);
       tft.drawLine(0, tft.maxY() - 2, tft.maxX(), tft.maxY() - 2, COLOR_YELLOW);
       tft.drawLine(0, tft.maxY() - 2, tft.maxX(), tft.maxY() - 2, COLOR_YELLOW);
-      tmp=map(50, 0, 230, 16 * 8, (16 * 8) + 90);   //16 * 6, (16 * 8) + 90)
+      tmp = map(50, 0, 230, 16 * 8, (16 * 8) + 90); //16 * 6, (16 * 8) + 90)
       tft.drawLine(10, tmp, 20, tmp,  0x0470);
-      tft.drawLine(10, tmp+20, 20, tmp+20.,  0x0470);
-      tft.drawLine(10, tmp+40, 20, tmp+40.,  0x0470);
-      tft.drawLine(10, tmp+60, 20, tmp+60.,  0x0470);
+      tft.drawLine(10, tmp + 20, 20, tmp + 20.,  0x0470);
+      tft.drawLine(10, tmp + 40, 20, tmp + 40.,  0x0470);
+      tft.drawLine(10, tmp + 60, 20, tmp + 60.,  0x0470);
       //plot()
 
       break;
