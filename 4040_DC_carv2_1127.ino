@@ -64,8 +64,8 @@ int BENCR = PA9;
 
 #define MID 69
 #define BLK 200 //!!!
-#define NSL 60
-#define NSR 58
+#define NSL 55
+#define NSR 53
 
 //uint16_t Position[];
 
@@ -77,6 +77,19 @@ uint16_t PcamARR[ARR_SIZE];
 
 uint16_t *camptr;
 uint16_t *Pcamptr;
+
+
+// PID Constants
+float Kp = 25;
+float Ki = 0;
+float Kd = 15;
+
+float error = 0, P = 0, I = 0, D = 0, PID_value = 0;
+float previous_error = 0, previous_I = 0;
+int previous_pos = 0;
+int flag1 = 1;     // 0 = no turn, 1 = line on left, 2 = right
+boolean flag2 = false;
+unsigned long startTime;
 
 
 //#I2C1
@@ -195,10 +208,10 @@ void loop() {
     mainPage(1); mainPage(2); mainPage(3); mainPage(4); mainPage(5); mainPage(6);
   }
   //motorMOVE(FW, 80, 80);
-  //if ((tt) % 1000 < 500)
-  //{    motorMOVE(FW, 100, 94);}
-  //else
-  //{    motorMOVE(STP, 100, 94);}
+//  if ((tt) % 1000 < 500)
+//  {    motorMOVE(FW, 40, 40);}
+//  else
+//  {    motorMOVE(BW, 40, 40);}
 
   Chk_speedX(&speedL, &speedR);
   // tracking algoritm
@@ -257,7 +270,7 @@ int getBLK(uint16_t camARR[]) {
   }
   if (right - left > 115) return -10;
   else if (right - left > 50 && left < 5) return -3;
-  //else if (right - MID <= 30 && MID - left <= 30 && right >= MID && left <= MID) return MID;
+  else if (right - left <= 30) return (right + left) / 2;
   else if (abs(right - MID) > abs(left - MID)) return right;
   else return left;
 }
@@ -276,23 +289,58 @@ void tracking_algoritm()
 {
   // USER DEFINE
   int pos = getBLK(camARR);
-  if (pos == -10) {
+  if (pos == -10 && millis() > 10000) {
     motorMOVE(FW, NSL, NSR);
-    delay(500);
+    delay(800);
     motorMOVE(STP, 0, 0);
     delay(2000);
+    //flag = 0;
+    exit(1);
   }
-  else if (pos == -1)
-    motorMOVE(BW, 32, 32);
+
+  /*
+  else if (flag1 != 0) {
+    //motorMOVE(BW, 32, 32);
+    if (pos == -1){
+      if (previous_pos < MID || flag == 1) {
+        motorMOVE(CW, 40, 40);
+        flag1 = 1;
+      }
+      else if (previous_pos >= MID || flag == 2){
+        motorMOVE(CCW, 40, 40);
+        flag1 = 2;
+      }
+    } else flag1 = 0;
+  }
+  */
+  else if (pos == -1){ /*
+    if (previous_pos < MID) {
+        motorMOVE(CW, 40, 40);
+      }
+    else if (previous_pos >= MID ){
+        motorMOVE(CCW, 40, 40);
+        */
+    motorMOVE(BW, 34, 34);
+  
+  }
+  
   else if (pos == -3) {
     motorMOVE(CW, 0, NSR);
     delay(500);
+    //flag = 0;
+    //startTime = millis();
+
+ 
   }
 
-  else if (pos >= 0 && pos < 44)
-    motorMOVE(FW, map(pos, 0, 53, 0, NSL), NSR);
-  else if (pos >= 94 && pos < ARR_SIZE)
-    motorMOVE(FW, NSL, map(pos, 84, ARR_SIZE - 1, NSR, 0));
+  else if (pos >= 0 && pos < 49){
+    motorMOVE(FW, map(pos, 0, 49, 0, NSL), NSR);
+    //flag = 0; 
+  }
+  else if (pos >= 89 && pos < ARR_SIZE){
+    motorMOVE(FW, NSL, map(pos, 89, ARR_SIZE - 1, NSR, 0));
+    //flag = 0;
+  }
 /*
   else if (pos >= 0 && pos < 54)
     motorMOVE(FW, 0, map(pos, 0, 53, NSR-5, 30));
@@ -301,12 +349,47 @@ void tracking_algoritm()
   else if (pos >= 54 && pos < MID)
   motorMOVE(FW, map(pos, 54, MID - 1, NSL-5, NSL), NSR);
   */
-  else
+
+  else if (pos >= 44 && pos < MID)
+    motorMOVE(FW, map(pos, 44, MID - 1, 45, NSL), NSR);
+  else if (pos >= MID && pos < 94)
+    motorMOVE(FW, NSL, map(pos, MID, 93, NSR, 43));
+  else {
     motorMOVE(FW, NSL, NSR);
+    //flag = 0;
+  }
+
+  previous_pos = pos;
 }
 
+/*
+void calculate_pid()
+{
+  if (pos < 44 && pos >=94)
+  error = 69 - pos;
+  else 
+  error = 0;
+  
+  P = error;
+  I = I + previous_I;
+  D = error - previous_error;
 
+  PID_value = (Kp * P) + (Ki * I) + (Kd * D);
 
+  previous_I = I;
+  previous_error = error;
+}
+
+void motor_control()
+{
+  // Calculating the effective motor speed:
+  int left_motor_speed = NSL - PID_value;
+  int right_motor_speed = NSR + PID_value;
+  
+  motorMOVE(FW, left_motor_speed, right_motor_speed);
+}
+
+*/
 
 void motorMOVE(MOT_dir actX, uint8_t spdL , uint8_t spdR )
 {
