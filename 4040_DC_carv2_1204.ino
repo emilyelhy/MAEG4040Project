@@ -63,8 +63,7 @@ int BENCR = PA9;
 #define DT 10
 
 #define MID 69
-// #define BLK 200 //!!!
-#define BLK 180 //!!!
+#define BLK 180
 #define NSL 60
 #define NSR 58
 
@@ -213,11 +212,6 @@ void loop() {
   {
     mainPage(1); mainPage(2); mainPage(3); mainPage(4); mainPage(5); mainPage(6);
   }
-  //motorMOVE(FW, 80, 80);
-//  if ((tt) % 1000 < 500)
-//  {    motorMOVE(FW, 40, 40);}
-//  else
-//  {    motorMOVE(BW, 40, 40);}
 
   Chk_speedX(&speedL, &speedR);
   Cam_plot(0);
@@ -225,15 +219,11 @@ void loop() {
   Cam_plot(1);
   // tracking algoritm
   tracking_algoritm();
-
-  //Cam_plot(0); // clear
-  //getCameraZ();  // get data
-  //Cam_plot(1);  // plot
+  
   if (digitalRead(PC13))
     digitalWrite(PC13, LOW);
   else
     digitalWrite(PC13, HIGH);
-  //XXtime = millis() - XXtime;
 }
 
 
@@ -253,6 +243,7 @@ void Chk_speedX(int *lL, int *rR)
 int getBLK(uint16_t camARR[]) {
   left = -1;
   right = -1;
+  // get the left margin of black line
   for (int i = 0; i < ARR_SIZE; i++) {
     if (camARR[i] <= BLK) {
       int count = 0;
@@ -265,7 +256,7 @@ int getBLK(uint16_t camARR[]) {
       }
     }
   }
-
+  // get the right margin of black line
   for (int i = ARR_SIZE - 1; i >= 0; i--) {
     if (camARR[i] <= BLK) {
       int count = 0;
@@ -278,41 +269,34 @@ int getBLK(uint16_t camARR[]) {
       }
     }
   }
-  if (right - left > 90) return -10;
-  else if (right - left > 50 && left < 5) return -3;
-  else if (right - left <= 30) return (right + left) / 2;
-  else if (abs(right - MID) > abs(left - MID)) return right;
-  else return left;
+  if (right - left > 90) return -10;                            // return -10 if width of line > 90
+  else if (right - left > 50 && left < 5) return -3;            // return -3 if width of line > 50 and line in left
+  else if (right - left <= 30) return (right + left) / 2;       // return middle point of line if line in middle
+  else if (abs(right - MID) > abs(left - MID)) return right;    // return right margin if line in right
+  else return left;                                             // return left margin if line in left
 }
 
-/*
-int getVELO(uint16_t pos, poslate, millis() ) {
-
-  vel = (pos-poslast)/millis
-  return
-  }
- 
-}
-
-*/
 void tracking_algoritm()
 {
   // USER DEFINE
+  // get current position of black line
   int pos = getBLK(camARR);
+  // case when car meets terminal
   if (pos == -10 && millis() > 10000){
     motorMOVE(FW, NSL, NSR);
     delay(600);
     motorMOVE(STP, 0, 0);
     delay(1000);
-    //flag = 0;
     exit(1);
   }
+  // cases when camera all white
   else if (pos == -1){
     countWHT++;
     if (startTime == 0)
       startTime = millis();
     else
       Turn_Time = millis();
+    // case cannot detect black after left and right turn (meets terminal)
     if (countWHT >=2){
       if (Turn_Time - startTime >= 1400) {
         motorMOVE(STP, 0, 0);
@@ -330,71 +314,37 @@ void tracking_algoritm()
         }
       }
     }
+    // case when just left black line, determine flag1 by its previous pos
     else if (flag1 == 0){
       if (previous_pos - MID < 0){
-        motorMOVE(CW, /*40*/50, /*40*/50);
+        motorMOVE(CW, 50, 50);
         flag1 = 1;
       }
       else if (previous_pos - MID > 0){
-        motorMOVE(CCW, /*40*/50, /*40*/50);
+        motorMOVE(CCW, 50, 50);
         flag1 = 2;
       }
     }
+    // case when black line previously in left, turn left
     else if (flag1 == 1) {
-      motorMOVE(CW, /*40*/50, /*40*/50);
-      /*
-      Turn_Time = Turn_Time + (millis() - XXtime);
-      if (Turn_Time >= 4000) {
-        motorMOVE(CCW, 50, 40);
-        delay(1500);
-        motorMOVE(STP, 0, 0);
-        exit(1);
-      }
-      */
+      motorMOVE(CW, 50, 50);
     }
+    // case when black line previously in right, turn right
     else if (flag1 == 2) {
-      motorMOVE(CCW, /*40*/50, /*40*/50);
+      motorMOVE(CCW, 50, 50);
     }
-  }
-  /*
-  else if (flag1 != 0) {
-    //motorMOVE(BW, 32, 32);
-    if (pos == -1){
-      if (previous_pos < MID || flag == 1) {
-        motorMOVE(CW, 40, 40);
-        flag1 = 1;
-      }
-      else if (previous_pos >= MID || flag == 2){
-        motorMOVE(CCW, 40, 40);
-        flag1 = 2;
-      }
-    } else flag1 = 0;
-  }
-  */
-  /*
-  else if (pos == -1){ 
-    if (previous_pos < MID) {
-        motorMOVE(CW, 40, 40);
-      }
-    else if (previous_pos >= MID ){
-        motorMOVE(CCW, 40, 40);
-        
-    motorMOVE(BW, 34, 34);
-  
-  }*/
-  
-  
+  }  
+  // case when black line is in left and width > 50 (L-turn after zone3)
   else if (pos == -3) {
     motorMOVE(CW, 0, NSR);
     delay(500);
     flag1 = 0;
-    //startTime = millis();
     flag2 = true;
     startTime = 0;
     Turn_Time = 0;
     countWHT = 0;
   }
-
+  // case when black line in far left
   else if (pos >= 0 && pos < 49){
     motorMOVE(FW, map(pos, 0, 49, 0, NSL), NSR);
     flag1 = 0;
@@ -402,6 +352,7 @@ void tracking_algoritm()
     Turn_Time = 0;
     countWHT = 0;
   }
+  // case when black line in far right
   else if (pos >= 89 && pos < ARR_SIZE){
     motorMOVE(FW, NSL, map(pos, 89, ARR_SIZE - 1, NSR, 0));
     flag1 = 0;
@@ -409,29 +360,23 @@ void tracking_algoritm()
     Turn_Time = 0;
     countWHT = 0;
   }
-/*
-  else if (pos >= 0 && pos < 54)
-    motorMOVE(FW, 0, map(pos, 0, 53, NSR-5, 30));
-  else if (pos >= 84 && pos < ARR_SIZE)
-    motorMOVE(FW, map(pos, 84, ARR_SIZE - 1, 30, NSL-5), 0);
-  else if (pos >= 54 && pos < MID)
-  motorMOVE(FW, map(pos, 54, MID - 1, NSL-5, NSL), NSR);
-  */
-
-  else if (pos >= /*44*/ 49 && pos < MID){
+  // case when black line slightly shift left
+  else if (pos >= 49 && pos < MID){
     flag1 = 0;
     startTime = 0;
     Turn_Time = 0;
     countWHT = 0;
-    motorMOVE(FW, map(pos, /*44*/49, MID - 1, NSL - 5, NSL), NSR);
+    motorMOVE(FW, map(pos, 49, MID - 1, NSL - 5, NSL), NSR);
   }
-  else if (pos >= MID && pos < /*94*/ 89){
+  // case when black line slightly shift right
+  else if (pos >= MID && pos < 89){
     flag1 = 0;
     startTime = 0;
     Turn_Time = 0;
     countWHT = 0;
-    motorMOVE(FW, NSL, map(pos, MID, /*93*/ 88, NSR, NSR - 5)); 
+    motorMOVE(FW, NSL, map(pos, MID, 88, NSR, NSR - 5)); 
   }
+  // case when black line in middle
   else {
     motorMOVE(FW, NSL, NSR);
     flag1 = 0;
@@ -439,38 +384,9 @@ void tracking_algoritm()
     Turn_Time = 0;
     countWHT = 0;
   }
-
+  // set current pos as previous pos for next loop
   previous_pos = pos;
 }
-
-/*
-void calculate_pid()
-{
-  if (pos < 44 && pos >=94)
-  error = 69 - pos;
-  else 
-  error = 0;
-  
-  P = error;
-  I = I + previous_I;
-  D = error - previous_error;
-
-  PID_value = (Kp * P) + (Ki * I) + (Kd * D);
-
-  previous_I = I;
-  previous_error = error;
-}
-
-void motor_control()
-{
-  // Calculating the effective motor speed:
-  int left_motor_speed = NSL - PID_value;
-  int right_motor_speed = NSR + PID_value;
-  
-  motorMOVE(FW, left_motor_speed, right_motor_speed);
-}
-
-*/
 
 void motorMOVE(MOT_dir actX, uint8_t spdL , uint8_t spdR )
 {
