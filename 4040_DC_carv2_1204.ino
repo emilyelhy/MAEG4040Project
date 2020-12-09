@@ -1,23 +1,17 @@
 /*
    Hardware Timer as an Encoder interface.
-
   /*
       Pins associated with each timer are
       Timer1;  // LEFT MOTOR PA8-9
       Timer2;  // LEFT MOTOR PA0-1
       Timer3;  // reserved PA6-7 / SPI
       Timer4;  // LEFT MOTOR PB6-7
-
-
    COUNTING DIRECTION:
    0 means that it is upcounting, meaning that Channel A is leading Channel B
-
    EDGE COUNTING:
-
    mode 1 - only counts pulses on channel B
    mode 2 - only counts pulses on Channel A
    mode 3 - counts on both channels.
-
 */
 
 
@@ -81,15 +75,6 @@ uint16_t *Pcamptr;
 int left = -1;
 int right = -1;
 
-
-
-// PID Constants
-float Kp = 25;
-float Ki = 0;
-float Kd = 15;
-
-float error = 0, P = 0, I = 0, D = 0, PID_value = 0;
-float previous_error = 0, previous_I = 0;
 int previous_pos = 0;
 int flag1 = 0;     // 0 = no turn, 1 = line on left, 2 = right
 boolean flag2 = false;
