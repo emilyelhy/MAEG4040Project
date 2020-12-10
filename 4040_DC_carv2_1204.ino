@@ -283,19 +283,23 @@ void tracking_algoritm()
       Turn_Time = millis();
     // case cannot detect black after left and right turn (meets terminal)
     if (countWHT >=2){
-      if (Turn_Time - startTime >= 1400) {
-        motorMOVE(STP, 0, 0);
+      if (Turn_Time - startTime >= 800) {
         if (flag1 == 1) {
-          motorMOVE(BW, 55, 20);
-          delay(800);
-          motorMOVE(STP, 0, 0);
-          exit(1);
-        }
-        if (flag1 == 2) {
-          motorMOVE(BW, 20, 55);
-          delay(800);
-          motorMOVE(STP, 0, 0);
-          exit(1);
+          motorMOVE(CCW, 50, 50);
+          if (Turn_Time - startTime >= 2400) {
+            motorMOVE(CW, 20, 80);
+            delay(1200);
+            motorMOVE(STP, 0, 0);
+            exit(1);
+            }
+        } else if (flag1 == 2) {
+          motorMOVE(CW, 50, 50);
+          if (Turn_Time - startTime >= 2400) {
+            motorMOVE(CCW, 80, 20);
+            delay(1200);
+            motorMOVE(STP, 0, 0);
+            exit(1);
+            }
         }
       }
     }
